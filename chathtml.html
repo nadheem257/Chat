@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#111;color:#fff;font-family:Arial;padding:10px;">
+<h2>WebRTC P2P Chat (Manual SDP)</h2>
+
+<textarea id="local" style="width:100%;height:120px;" placeholder="Your SDP"></textarea><br><br>
+<button onclick="makeOffer()">Create Offer</button>
+<button onclick="makeAnswer()">Create Answer</button>
+<button onclick="applyRemote()">Apply Remote</button><br><br>
+
+<textarea id="remote" style="width:100%;height:120px;" placeholder="Paste SDP from friend"></textarea>
+
+<hr style="border:1px solid #333;margin:20px 0;">
+
+<div id="chat" style="border:1px solid #444;height:200px;overflow:auto;padding:5px;"></div>
+<input id="msg" style="width:75%;padding:10px;" placeholder="Type message">
+<button onclick="sendMsg()">Send</button>
+
+<script>
+const pc = new RTCPeerConnection({
+  iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+});
+let channel;
+
+pc.ondatachannel = e => {
+  channel = e.channel;
+  channel.onmessage = e => show("Friend: " + e.data);
+};
+
+pc.onicecandidate = e => {
+  if (!e.candidate) local.value = JSON.stringify(pc.localDescription);
+};
+
+function show(t){
+  chat.innerHTML += t + "<br>";
+}
+
+async function makeOffer(){
+  channel = pc.createDataChannel("chat");
+  channel.onmessage = e => show("Friend: " + e.data);
+
+  await pc.setLocalDescription(await pc.createOffer());
+}
+
+async function makeAnswer(){
+  await pc.setRemoteDescription(JSON.parse(remote.value));
+  await pc.setLocalDescription(await pc.createAnswer());
+}
+
+async function applyRemote(){
+  await pc.setRemoteDescription(JSON.parse(remote.value));
+}
+
+function sendMsg(){
+  channel.send(msg.value);
+  show("You: " + msg.value);
+  msg.value = "";
+}
+</script>
+</body>
+</html>
