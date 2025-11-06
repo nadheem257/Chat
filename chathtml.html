@@ -1,61 +1,107 @@
 <!DOCTYPE html>
 <html>
-<body style="background:#111;color:#fff;font-family:Arial;padding:10px;">
-<h2>WebRTC P2P Chat (Manual SDP)</h2>
+<head>
+  <title>WebRTC Video + Chat</title>
+  <style>
+    body { background:#111; color:#fff; font-family:Arial; padding:10px; }
+    video { width:45%; background:#000; margin:2px; }
+    #videos { display:flex; justify-content:space-between; }
+    #chatBox { border:1px solid #444; height:200px; overflow:auto; padding:5px; margin-top:10px; }
+    #msgInput { width:75%; padding:8px; }
+    #sendBtn { width:23%; padding:8px; margin-left:2px; background:#0f0; border:none; cursor:pointer; }
+    textarea { width:100%; height:120px; margin-top:5px; background:#222; color:#fff; border:none; padding:5px; }
+    button { padding:8px 12px; margin-top:5px; cursor:pointer; }
+  </style>
+</head>
+<body>
 
-<textarea id="local" style="width:100%;height:120px;" placeholder="Your SDP"></textarea><br><br>
+<h2>WebRTC Video + Chat — Manual SDP</h2>
+
+<div id="videos">
+  <video id="localVideo" autoplay playsinline></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+</div>
+
+<button onclick="startCamera()">Start Camera & Mic</button>
+
+<h3>Text Chat</h3>
+<div id="chatBox"></div>
+<input id="msgInput" placeholder="Type message...">
+<button id="sendBtn" onclick="sendMsg()">Send</button>
+
+<h3>SDP Exchange</h3>
+<textarea id="localSDP" placeholder="Your SDP will appear here"></textarea><br>
 <button onclick="makeOffer()">Create Offer</button>
 <button onclick="makeAnswer()">Create Answer</button>
-<button onclick="applyRemote()">Apply Remote</button><br><br>
-
-<textarea id="remote" style="width:100%;height:120px;" placeholder="Paste SDP from friend"></textarea>
-
-<hr style="border:1px solid #333;margin:20px 0;">
-
-<div id="chat" style="border:1px solid #444;height:200px;overflow:auto;padding:5px;"></div>
-<input id="msg" style="width:75%;padding:10px;" placeholder="Type message">
-<button onclick="sendMsg()">Send</button>
+<textarea id="remoteSDP" placeholder="Paste friend's SDP here"></textarea><br>
+<button onclick="applyRemote()">Apply Remote</button>
 
 <script>
 const pc = new RTCPeerConnection({
-  iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
-let channel;
 
+let localStream;
+let dataChannel;
+
+// Video handling
+pc.ontrack = e => {
+  document.getElementById("remoteVideo").srcObject = e.streams[0];
+};
+
+// Chat handling
 pc.ondatachannel = e => {
-  channel = e.channel;
-  channel.onmessage = e => show("Friend: " + e.data);
+  dataChannel = e.channel;
+  dataChannel.onmessage = msg => appendChat("Friend: " + msg.data);
 };
 
+function appendChat(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  document.getElementById("chatBox").appendChild(div);
+  document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+}
+
+document.getElementById("sendBtn").onclick = sendMsg;
+
+function sendMsg() {
+  const msg = document.getElementById("msgInput").value;
+  if (!msg || !dataChannel) return;
+  dataChannel.send(msg);
+  appendChat("You: " + msg);
+  document.getElementById("msgInput").value = "";
+}
+
+// Camera + microphone
+async function startCamera() {
+  localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+  document.getElementById("localVideo").srcObject = localStream;
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+}
+
+// SDP handling
 pc.onicecandidate = e => {
-  if (!e.candidate) local.value = JSON.stringify(pc.localDescription);
+  if (!e.candidate) document.getElementById("localSDP").value = JSON.stringify(pc.localDescription);
 };
 
-function show(t){
-  chat.innerHTML += t + "<br>";
+function makeOffer() {
+  dataChannel = pc.createDataChannel("chat");
+  dataChannel.onmessage = msg => appendChat("Friend: " + msg.data);
+  pc.createOffer().then(o => pc.setLocalDescription(o));
 }
 
-async function makeOffer(){
-  channel = pc.createDataChannel("chat");
-  channel.onmessage = e => show("Friend: " + e.data);
-
-  await pc.setLocalDescription(await pc.createOffer());
+function makeAnswer() {
+  const remote = JSON.parse(document.getElementById("remoteSDP").value);
+  pc.setRemoteDescription(remote).then(() => {
+    pc.createAnswer().then(a => pc.setLocalDescription(a));
+  });
 }
 
-async function makeAnswer(){
-  await pc.setRemoteDescription(JSON.parse(remote.value));
-  await pc.setLocalDescription(await pc.createAnswer());
-}
-
-async function applyRemote(){
-  await pc.setRemoteDescription(JSON.parse(remote.value));
-}
-
-function sendMsg(){
-  channel.send(msg.value);
-  show("You: " + msg.value);
-  msg.value = "";
+function applyRemote() {
+  const remote = JSON.parse(document.getElementById("remoteSDP").value);
+  pc.setRemoteDescription(remote);
 }
 </script>
+
 </body>
 </html>
