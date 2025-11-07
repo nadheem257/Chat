@@ -1,107 +1,436 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>WebRTC Video + Chat</title>
+  <title>CHATBLES - WebRTC Video + Chat</title>
   <style>
-    body { background:#111; color:#fff; font-family:Arial; padding:10px; }
-    video { width:45%; background:#000; margin:2px; }
-    #videos { display:flex; justify-content:space-between; }
-    #chatBox { border:1px solid #444; height:200px; overflow:auto; padding:5px; margin-top:10px; }
-    #msgInput { width:75%; padding:8px; }
-    #sendBtn { width:23%; padding:8px; margin-left:2px; background:#0f0; border:none; cursor:pointer; }
-    textarea { width:100%; height:120px; margin-top:5px; background:#222; color:#fff; border:none; padding:5px; }
-    button { padding:8px 12px; margin-top:5px; cursor:pointer; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background:
+        radial-gradient(circle at center, rgba(24, 78, 28, 0.8), transparent 60%),
+        linear-gradient(135deg, #04240f, #124533 40%, #063312 100%),
+        url('https://www.transparenttextures.com/patterns/green-fibers.png');
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: cover;
+      max-width: 850px;
+      margin: 0 auto;
+      min-height: 120vh;
+      padding: 20px 15px;
+      box-sizing: border-box;
+      color: #c4ffd6;
+      cursor: none;
+      opacity: 0;
+      transition: opacity 0.6s ease-out;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      scroll-behavior: smooth;
+    }
+    #appName {
+      text-align: center;
+      font-size: 3.4rem;
+      font-weight: 900;
+      color: #33ff69;
+      text-shadow: 0 0 12px #21df47, 0 0 30px #47ff61;
+      margin: 20px 0;
+      user-select: none;
+      letter-spacing: 0.14em;
+    }
+    h2, h3 {
+      color: #a8ffb3;
+      text-shadow: 0 0 7px #35db52;
+    }
+    #videos {
+      display:flex;
+      justify-content:space-between;
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+    .camera-box,
+    .remote-box {
+      background: #070d0c;
+      border-radius: 16px;
+      width: 364px;
+      height: 204px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 8px 28px #27c90a77, 0 0 0 2px #1f3a16;
+      transition: box-shadow 0.3s;
+      z-index: 1;
+    }
+    .remote-box {
+      box-shadow: 0 8px 28px #16867b77, 0 0 0 2px #17403a;
+    }
+    .camera-box video,
+    .remote-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 16px;
+      border: none;
+      background: transparent;
+      z-index: 2; /* Below cursor, above background */
+    }
+    /* Hide video if no stream */
+    .camera-box.inactive video,
+    .remote-box.inactive video {
+      display: none;
+    }
+    /* Chat, text, inputs, button styles as before ... */
+    #chatBox, textarea {
+      background: rgba(15, 60, 15, 0.7);
+      backdrop-filter: blur(12px);
+      border-radius: 8px;
+      border: 1.5px solid #2ddb3c;
+      box-shadow: 0 6px 16px rgba(60, 240, 105, 0.3);
+      color: #b3ffca;
+      font-size: 1em;
+      opacity: 0;
+      transform: translateY(30px);
+      font-weight: 500;
+    }
+    #chatBox {
+      height: 200px;
+      overflow:auto;
+      padding:8px;
+      margin-top:10px;
+      line-height: 1.4;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin-top: 7px;
+      border: none;
+      padding: 8px;
+      resize: vertical;
+      color: inherit;
+      font-family: inherit;
+      letter-spacing: 0.02em;
+    }
+    #msgInput {
+      border-radius: 8px;
+      border: 1.5px solid #36e950;
+      padding: 10px;
+      width: 75%;
+      background: #164b1f;
+      box-shadow: inset 0 0 10px #18d54aaa;
+      color: #c8ffc7;
+      transition: box-shadow 0.3s ease;
+      font-size: 1.04em;
+      font-family: inherit;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+    }
+    #msgInput:focus {
+      outline: none;
+      box-shadow: 0 0 18px 3px #2fff4f, inset 0 0 12px #4fff80;
+      background: #1c7031;
+      color: #e4ffe4;
+    }
+    button {
+      padding:8px 14px;
+      margin-top:6px;
+      cursor:pointer;
+      position: relative;
+      background: linear-gradient(90deg,#17fc6f 50%,#21aaff 110%);
+      color: #0e2e10;
+      border: none;
+      border-radius: 0.5em;
+      font-size: 1.1em;
+      font-weight: 600;
+      box-shadow: 0 4px 18px rgba(30,255,110,0.9);
+      transition: background 0.38s, box-shadow 0.3s, color 0.22s, transform 0.22s;
+      overflow: hidden;
+      z-index: 1;
+      user-select: none;
+      touch-action: manipulation;
+      font-family: inherit;
+      opacity: 0;
+      transform: translateY(30px);
+      text-shadow: 0 0 3px #00ff15;
+      letter-spacing: 0.02em;
+    }
+    button:hover, button:focus {
+      background: linear-gradient(90deg,#30ff90 45%,#68c0f9 115%);
+      color: #062307;
+      box-shadow:
+        0 0 9px #28ff60,
+        0 0 18px #0ea745,
+        0 0 30px #0ea745;
+      transform: translateY(-3px) scale(1.1);
+      outline: none;
+      text-shadow: 0 0 8px #19ff29;
+    }
+    button:active {
+      transform: scale(0.94);
+      background: linear-gradient(90deg,#0cff56 80%,#44b3c3 105%);
+      color: #001d01;
+      box-shadow:none;
+      text-shadow:none;
+    }
+    button::after {
+      content: "";
+      display: block;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(32,255,64,0.18);
+      border-radius: 50%;
+      transform: translate(-50%,-50%);
+      transition: width 0.32s cubic-bezier(.48,.03,.52,.96), height 0.32s cubic-bezier(.48,.03,.52,.96);
+      z-index: -1;
+      pointer-events: none;
+    }
+    button:hover::after {
+      width: 220%;
+      height: 900%;
+    }
+    /* Cursor overlay on top of all content */
+    .target-cursor-wrapper {
+      position: fixed;
+      top: 0; left: 0;
+      width: 0; height: 0;
+      pointer-events: none;
+      z-index: 99999;
+      mix-blend-mode: difference;
+      transform: translate(-50%, -50%);
+      transition: filter 0.18s;
+    }
+    .target-cursor-dot {
+      position:absolute; left:50%; top:50%;
+      width:8px; height:8px;
+      background:#16ff40;
+      border-radius:50%;
+      transform: translate(-50%, -50%) scale(1);
+      will-change: transform, background;
+      transition: background 0.18s;
+      box-shadow: 0 0 6px #2fff70;
+    }
+    .target-cursor-corner {
+      position:absolute; left:50%; top:50%;
+      width:12px; height:12px;
+      border:3px solid #16ff40;
+      will-change: transform;
+      transition: border-color 0.18s;
+      filter: drop-shadow(0 0 3px #2fff5f);
+    }
+    .corner-tl { transform:translate(-150%,-150%); border-right:none; border-bottom:none; }
+    .corner-tr { transform:translate(50%,-150%); border-left:none; border-bottom:none; }
+    .corner-br { transform:translate(50%,50%); border-left:none; border-top:none; }
+    .corner-bl { transform:translate(-150%,50%); border-right:none; border-top:none; }
+    .cursor-active {
+      filter: drop-shadow(0 0 12px #18ff49) brightness(1.3);
+    }
+    .cursor-dot-active {
+      background:#33ff69;
+      box-shadow: 0 0 12px #33ff69;
+    }
+    .cursor-corner-active {
+      border-color: #33ff69 !important;
+      filter: drop-shadow(0 0 8px #49ff7e);
+    }
   </style>
 </head>
 <body>
-
-<h2>WebRTC Video + Chat — Manual SDP</h2>
-
-<div id="videos">
-  <video id="localVideo" autoplay playsinline></video>
-  <video id="remoteVideo" autoplay playsinline></video>
-</div>
-
-<button onclick="startCamera()">Start Camera & Mic</button>
-
-<h3>Text Chat</h3>
-<div id="chatBox"></div>
-<input id="msgInput" placeholder="Type message...">
-<button id="sendBtn" onclick="sendMsg()">Send</button>
-
-<h3>SDP Exchange</h3>
-<textarea id="localSDP" placeholder="Your SDP will appear here"></textarea><br>
-<button onclick="makeOffer()">Create Offer</button>
-<button onclick="makeAnswer()">Create Answer</button>
-<textarea id="remoteSDP" placeholder="Paste friend's SDP here"></textarea><br>
-<button onclick="applyRemote()">Apply Remote</button>
-
-<script>
-const pc = new RTCPeerConnection({
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-});
-
-let localStream;
-let dataChannel;
-
-// Video handling
-pc.ontrack = e => {
-  document.getElementById("remoteVideo").srcObject = e.streams[0];
-};
-
-// Chat handling
-pc.ondatachannel = e => {
-  dataChannel = e.channel;
-  dataChannel.onmessage = msg => appendChat("Friend: " + msg.data);
-};
-
-function appendChat(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  document.getElementById("chatBox").appendChild(div);
-  document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
-}
-
-document.getElementById("sendBtn").onclick = sendMsg;
-
-function sendMsg() {
-  const msg = document.getElementById("msgInput").value;
-  if (!msg || !dataChannel) return;
-  dataChannel.send(msg);
-  appendChat("You: " + msg);
-  document.getElementById("msgInput").value = "";
-}
-
-// Camera + microphone
-async function startCamera() {
-  localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
-  document.getElementById("localVideo").srcObject = localStream;
-  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-}
-
-// SDP handling
-pc.onicecandidate = e => {
-  if (!e.candidate) document.getElementById("localSDP").value = JSON.stringify(pc.localDescription);
-};
-
-function makeOffer() {
-  dataChannel = pc.createDataChannel("chat");
-  dataChannel.onmessage = msg => appendChat("Friend: " + msg.data);
-  pc.createOffer().then(o => pc.setLocalDescription(o));
-}
-
-function makeAnswer() {
-  const remote = JSON.parse(document.getElementById("remoteSDP").value);
-  pc.setRemoteDescription(remote).then(() => {
-    pc.createAnswer().then(a => pc.setLocalDescription(a));
-  });
-}
-
-function applyRemote() {
-  const remote = JSON.parse(document.getElementById("remoteSDP").value);
-  pc.setRemoteDescription(remote);
-}
-</script>
-
+  <h1 id="appName">CHATBLES</h1>
+  <h2>WebRTC Video + Chat — Manual SDP</h2>
+  <div id="videos">
+    <div id="localBox" class="camera-box inactive">
+      <video id="localVideo" autoplay playsinline muted></video>
+    </div>
+    <div id="remoteBox" class="remote-box inactive">
+      <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+  </div>
+  <button class="cursor-target" onclick="startCamera()">Start Camera & Mic</button>
+  <h3>Text Chat</h3>
+  <div id="chatBox"></div>
+  <input id="msgInput" placeholder="Type message...">
+  <button id="sendBtn" class="cursor-target" onclick="sendMsg()">Send</button>
+  <h3>SDP Exchange</h3>
+  <textarea id="localSDP" placeholder="Your SDP will appear here"></textarea><br>
+  <button class="cursor-target" onclick="makeOffer()">Create Offer</button>
+  <button class="cursor-target" onclick="makeAnswer()">Create Answer</button>
+  <textarea id="remoteSDP" placeholder="Paste friend's SDP here"></textarea><br>
+  <button class="cursor-target" onclick="applyRemote()">Apply Remote</button>
+  <!-- Cursor Overlay Always On Top -->
+  <div id="cursor" class="target-cursor-wrapper">
+    <div class="target-cursor-dot"></div>
+    <div class="target-cursor-corner corner-tl"></div>
+    <div class="target-cursor-corner corner-tr"></div>
+    <div class="target-cursor-corner corner-br"></div>
+    <div class="target-cursor-corner corner-bl"></div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+  <script>
+    window.addEventListener('load', () => {
+      document.body.style.opacity = '1';
+    });
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray("#videos, #chatBox, textarea, button, h2, h3").forEach(el => {
+      gsap.fromTo(el, 
+        {opacity: 0, y: 30},
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.9,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: el,
+            start: "top 85%",
+            toggleActions: "play none none reverse"
+          }
+        }
+      );
+    });
+    // ---------------- WebRTC + Chat ----------------
+    const pc = new RTCPeerConnection({ iceServers:[{urls:"stun:stun.l.google.com:19302"}] });
+    let localStream, dataChannel;
+    // When remote track is received, show video and box
+    pc.ontrack = e => {
+      document.getElementById("remoteVideo").srcObject = e.streams[0];
+      document.getElementById("remoteBox").classList.remove("inactive");
+    };
+    pc.ondatachannel = e => {
+      dataChannel = e.channel; 
+      dataChannel.onmessage = msg => appendChat("Friend: " + msg.data);
+    };
+    function appendChat(text){
+      const div = document.createElement("div");
+      div.textContent = text;
+      document.getElementById("chatBox").appendChild(div);
+      document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+    }
+    function sendMsg(){
+      const msg = document.getElementById("msgInput").value;
+      if(!msg || !dataChannel) return;
+      dataChannel.send(msg);
+      appendChat("You: " + msg);
+      document.getElementById("msgInput").value = "";
+    }
+    async function startCamera(){
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+        document.getElementById("localVideo").srcObject = localStream;
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        document.getElementById("localBox").classList.remove("inactive");
+      } catch(err) {
+        alert("Error accessing camera and microphone. Please check permissions and try again.");
+        console.error("getUserMedia error", err);
+      }
+    }
+    pc.onicecandidate = e => {
+      if(!e.candidate)
+        document.getElementById("localSDP").value = JSON.stringify(pc.localDescription);
+    };
+    function makeOffer(){
+      dataChannel = pc.createDataChannel("chat");
+      dataChannel.onmessage = msg => appendChat("Friend: " + msg.data);
+      pc.createOffer().then(o => pc.setLocalDescription(o));
+    }
+    function makeAnswer(){
+      const r = JSON.parse(document.getElementById("remoteSDP").value);
+      pc.setRemoteDescription(r).then(() => pc.createAnswer().then(a => pc.setLocalDescription(a)));
+    }
+    function applyRemote(){
+      const r = JSON.parse(document.getElementById("remoteSDP").value);
+      pc.setRemoteDescription(r);
+    }
+    // ---------------- Cursor Animations (TOP layer always) ----------------
+    const cursor=document.getElementById("cursor");
+    const dot=cursor.querySelector(".target-cursor-dot");
+    const corners=Array.from(cursor.querySelectorAll(".target-cursor-corner"));
+    let mouse={x:window.innerWidth/2, y:window.innerHeight/2};
+    let pos={x:window.innerWidth/2, y:window.innerHeight/2};
+    let activeTarget=null;
+    let targetCenter = null;
+    let targetRect = null;
+    const targets=document.querySelectorAll(".cursor-target");
+    targets.forEach(el=>{
+      el.addEventListener("mouseenter",()=>{
+        activeTarget=el;
+        targetRect = el.getBoundingClientRect();
+        targetCenter = { x: targetRect.left + targetRect.width/2, y: targetRect.top + targetRect.height/2 };
+        cursor.classList.add('cursor-active');
+        dot.classList.add('cursor-dot-active');
+        corners.forEach(c => c.classList.add('cursor-corner-active'));
+        gsap.to(cursor, {scale:1, duration:0.18, ease:"power2.out"});
+        gsap.to(dot, {scale:1.2, duration:0.16, ease:"power2.out"});
+      });
+      el.addEventListener("mouseleave",()=>{
+        activeTarget=null;
+        targetCenter = null;
+        targetRect = null;
+        cursor.classList.remove('cursor-active');
+        dot.classList.remove('cursor-dot-active');
+        corners.forEach(c => c.classList.remove('cursor-corner-active'));
+        gsap.to(cursor, {scale:1, duration:0.18, ease:"power2.in"});
+        gsap.to(dot, {scale:1, duration:0.16, ease:"power2.in"});
+      });
+    });
+    let targetCorners=null;
+    function updateTargetCorners(){
+      if(!activeTarget || !targetRect) return;
+      targetCorners=[
+        {x:targetRect.left,y:targetRect.top},
+        {x:targetRect.right,y:targetRect.top},
+        {x:targetRect.right,y:targetRect.bottom},
+        {x:targetRect.left,y:targetRect.bottom}
+      ];
+    }
+    window.addEventListener("mousemove",e=>{
+      mouse.x=e.clientX;
+      mouse.y=e.clientY;
+    });
+    const setX=gsap.quickSetter(cursor,"x","px");
+    const setY=gsap.quickSetter(cursor,"y","px");
+    const setCorners=corners.map(c=>({x:gsap.quickSetter(c,"x","px"),y:gsap.quickSetter(c,"y","px")}));
+    gsap.ticker.add(()=>{
+      if(targetCenter){
+        pos.x+=(targetCenter.x-pos.x)*0.3;
+        pos.y+=(targetCenter.y-pos.y)*0.3;
+      } else {
+        pos.x+=(mouse.x-pos.x)*0.3;
+        pos.y+=(mouse.y-pos.y)*0.3;
+      }
+      setX(pos.x);
+      setY(pos.y);
+      if(activeTarget){
+        updateTargetCorners();
+        targetCorners.forEach((t,i)=>{
+          gsap.to(corners[i], {
+            x: t.x-pos.x,
+            y: t.y-pos.y,
+            duration: 0.18,
+            ease:"power2.out"
+          });
+        });
+      } else {
+        const defaultOffsets=[{x:-18,y:-18},{x:6,y:-18},{x:6,y:6},{x:-18,y:6}];
+        defaultOffsets.forEach((o,i)=>{
+          gsap.to(corners[i], {
+            x: o.x,
+            y: o.y,
+            duration: 0.16,
+            ease:"power2.in"
+          });
+        });
+      }
+    });
+    window.addEventListener("mousedown",()=>{
+      gsap.to(dot,{scale:0.91,duration:0.10});
+      gsap.to(cursor,{scale:0.95,duration:0.10});
+    });
+    window.addEventListener("mouseup",()=>{
+      gsap.to(dot,{scale: (activeTarget ? 1.2 : 1),duration:0.10});
+      gsap.to(cursor,{scale:1,duration:0.10});
+    });
+  </script>
 </body>
 </html>
