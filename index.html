@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Firebase Chat</title>
-<!-- Add emoji font -->
+<!-- Emoji font so emojis render correctly -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji" rel="stylesheet">
 <style>
 body {
@@ -230,7 +230,7 @@ emojis.forEach(e => {
   const span = document.createElement("span");
   span.textContent = e;
   span.className = "emoji";
-  span.style.fontFamily = '"Noto Color Emoji", Arial'; // ensure emoji font
+  span.style.fontFamily = '"Noto Color Emoji", Arial'; // ensures real emoji
   span.onclick = () => {
     msgInput.value += e;
     emojiPicker.style.display = "none";
