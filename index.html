@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Firebase Chat</title>
-<!-- Emoji font so emojis render correctly -->
+<!-- Emoji font -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji" rel="stylesheet">
 <style>
 body {
-  font-family: Arial, "Noto Color Emoji", sans-serif; /* <- fixed emojis */
+  font-family: Arial, "Noto Color Emoji", sans-serif; /* only change */
   background: #111;
   color: white;
   margin: 0;
@@ -208,7 +208,9 @@ function sendMessage() {
   msgInput.value = "";
 }
 sendBtn.onclick = sendMessage;
-msgInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+msgInput.addEventListener("keypress", e => {
+  if (e.key === "Enter") sendMessage();
+});
 
 // Receive messages
 db.ref(room).on("child_added", snap => {
@@ -230,7 +232,7 @@ emojis.forEach(e => {
   const span = document.createElement("span");
   span.textContent = e;
   span.className = "emoji";
-  span.style.fontFamily = '"Noto Color Emoji", Arial'; // ensures real emoji
+  span.style.fontFamily = '"Noto Color Emoji", Arial'; // ensures emoji renders
   span.onclick = () => {
     msgInput.value += e;
     emojiPicker.style.display = "none";
