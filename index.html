@@ -11,70 +11,47 @@ body {
 
 /* Login */
 #loginScreen {
-    width:100%; height:100vh;
-    display:flex; flex-direction:column;
-    justify-content:center; align-items:center;
-    background:#000;
+    width:100%; height:100vh; display:flex; flex-direction:column;
+    justify-content:center; align-items:center; background:#000;
 }
-input,button{
-    border-radius:8px;
-}
-#nameInput {
-    width:260px; padding:12px;
-    border:2px solid #333;
-    background:#111; color:white; font-size:16px;
-}
-#enterBtn {
-    width:260px; padding:12px; margin-top:10px;
-    background:#0af; border:none; color:white; font-size:16px; cursor:pointer;
-}
+input,button { border-radius:8px; }
+#nameInput { width:260px; padding:12px; border:2px solid #333; background:#111; color:white; font-size:16px; }
+#enterBtn { width:260px; padding:12px; margin-top:10px; background:#0af; border:none; color:white; font-size:16px; cursor:pointer; }
 
-/* Chat screen */
+/* Chat */
 #chatScreen { padding:20px; display:none; }
-#messages { 
-    background:#000; height:350px; overflow-y:scroll; 
-    padding:10px; border-radius:10px; border:1px solid #222;
-}
+#messages { background:#000; height:350px; overflow-y:scroll; padding:10px; border-radius:10px; border:1px solid #222; }
 
-/* Input row */
-.input-area {
-    display:flex; gap:8px; margin-top:10px;
-}
+.input-area { display:flex; gap:8px; margin-top:10px; }
 #msg {
-    flex:1; padding:10px; border:2px solid #333;
-    background:#111; color:white; border-radius:10px;
+    flex:1; padding:10px; border:2px solid #333; background:#111;
+    color:white; border-radius:10px;
 }
 #emojiBtn, #fileBtn {
-    width:42px; height:42px;
-    background:#222; border:none; cursor:pointer; font-size:20px;
-    border-radius:10px;
+    width:42px; height:42px; background:#222; border:none;
+    cursor:pointer; font-size:20px; border-radius:10px;
 }
 #sendBtn {
-    padding:10px 15px; background:#0af; color:white; border:none; cursor:pointer;
-    border-radius:10px;
+    padding:10px 15px; background:#0af; color:white; border:none;
+    cursor:pointer; border-radius:10px;
 }
 
-/* Discord style bubbles (smaller) */
+/* Emoji Picker Box */
+#emojiPickerContainer {
+    position:absolute;
+    bottom:90px;
+    right:30px;
+    display:none;
+    z-index:1000;
+}
+
 .chat-bubble {
-    max-width:60%;
-    padding:6px 10px;
-    margin:4px 0;
-    font-size:14px;
-    border-radius:8px;
-    animation:pop .2s;
+    max-width:60%; padding:6px 10px; margin:4px 0; font-size:14px;
+    border-radius:8px; animation:pop .2s;
 }
-.message-you {
-    background:#55ff55;
-    color:#000;
-    margin-left:auto;
-}
-.message-friend {
-    background:#4aa3ff;
-    color:white;
-    margin-right:auto;
-}
+.message-you { background:#55ff55; color:#000; margin-left:auto; }
+.message-friend { background:#4aa3ff; color:white; margin-right:auto; }
 
-/* animation */
 @keyframes pop { 
  0%{transform:scale(.8);opacity:.4;} 
  100%{transform:scale(1);opacity:1;} 
@@ -84,15 +61,19 @@ input,button{
 
 <body>
 
+<!-- LOGIN -->
 <div id="loginScreen">
     <h2>👤 Enter Your Name</h2>
     <input id="nameInput" placeholder="Your name...">
     <button id="enterBtn">Enter Chat</button>
 </div>
 
+<!-- CHAT -->
 <div id="chatScreen">
     <h2>🔥 Firebase Chat</h2>
     <div id="messages"></div>
+
+    <div id="emojiPickerContainer"></div>
 
     <div class="input-area">
         <button id="emojiBtn">😊</button>
@@ -101,15 +82,19 @@ input,button{
         <button id="sendBtn">Send</button>
     </div>
 
-    <!-- Hidden file select -->
     <input type="file" id="fileInput" style="display:none">
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
+<!-- ✅ EmojiMart REAL Emoji Picker -->
+<script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.css" />
+
 <script>
-// Firebase (same)
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCwSqm65CoNwPc3PiVo1T40YJM2MAcg480",
   authDomain: "server-1-9fa4f.firebaseapp.com",
@@ -130,6 +115,7 @@ let sendBtn = document.getElementById("sendBtn");
 let fileBtn = document.getElementById("fileBtn");
 let fileInput = document.getElementById("fileInput");
 let emojiBtn = document.getElementById("emojiBtn");
+let emojiBox = document.getElementById("emojiPickerContainer");
 
 let nameInput = document.getElementById("nameInput");
 let enterBtn = document.getElementById("enterBtn");
@@ -139,7 +125,7 @@ let chatScreen = document.getElementById("chatScreen");
 let username = "";
 let myId = "";
 
-// login
+// LOGIN
 enterBtn.onclick = () => {
     username = nameInput.value.trim();
     if(!username) return alert("Enter name!");
@@ -148,7 +134,7 @@ enterBtn.onclick = () => {
     chatScreen.style.display = "block";
 };
 
-// send message
+// SEND
 function sendMessage(text){
     if(!text.trim()) return;
     db.ref(room).push({ text, user: myId, name: username, time: Date.now() });
@@ -158,23 +144,31 @@ sendBtn.onclick = () => sendMessage(msgInput.value);
 msgInput.addEventListener("keypress", e => { if(e.key==="Enter") sendMessage(msgInput.value); });
 nameInput.addEventListener("keypress", e => { if(e.key==="Enter") enterBtn.click(); });
 
-// Emoji picker (basic)
-emojiBtn.onclick = () => {
-    const emojis = ["😀","😂","🔥","😎","❤️","😡","😴","🎮","👀","✅","😭","👍","🤝"];
-    let pick = prompt("Choose emoji:\n" + emojis.join(" "));
-    if(pick) msgInput.value += pick;
-};
-
-// Attachment
+// ATTACHMENT
 fileBtn.onclick = ()=> fileInput.click();
 fileInput.onchange = ()=>{
     let file = fileInput.files[0];
-    if(file){
-        sendMessage("[📎 Attachment] " + file.name);
-    }
+    if(file) sendMessage("[📎 Attachment] " + file.name);
 };
 
-// receive messages
+// ✅ REAL EMOJI PICKER
+const picker = new EmojiMart.Picker({
+    theme:"dark",
+    skinTonePosition:"search",
+    previewPosition:"none",
+    onEmojiSelect: emoji => {
+        msgInput.value += emoji.native;
+        msgInput.focus();
+    }
+});
+emojiBox.appendChild(picker);
+emojiBox.style.display="none";
+
+emojiBtn.onclick = () => {
+    emojiBox.style.display = emojiBox.style.display === "none" ? "block" : "none";
+};
+
+// LISTEN MESSAGES
 db.ref(room).on("child_added", snap => {
     let d = snap.val();
     if(!d) return;
