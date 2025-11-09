@@ -9,62 +9,72 @@ body {
     padding:0; margin:0;
 }
 
-/* Login screen */
+/* Login */
 #loginScreen {
     width:100%; height:100vh;
     display:flex; flex-direction:column;
     justify-content:center; align-items:center;
     background:#000;
 }
+input,button{
+    border-radius:8px;
+}
 #nameInput {
     width:260px; padding:12px;
-    border-radius:8px; border:2px solid #333;
+    border:2px solid #333;
     background:#111; color:white; font-size:16px;
 }
 #enterBtn {
     width:260px; padding:12px; margin-top:10px;
-    border:none; border-radius:8px;
-    background:#0af; color:white; font-size:16px; cursor:pointer;
+    background:#0af; border:none; color:white; font-size:16px; cursor:pointer;
 }
-#enterBtn:hover { transform:scale(1.03); }
-#enterBtn:active { transform:scale(.97); }
 
-/* Chat UI */
+/* Chat screen */
 #chatScreen { padding:20px; display:none; }
 #messages { 
     background:#000; height:350px; overflow-y:scroll; 
     padding:10px; border-radius:10px; border:1px solid #222;
 }
+
+/* Input row */
+.input-area {
+    display:flex; gap:8px; margin-top:10px;
+}
 #msg {
-    width:100%; padding:12px; margin-top:10px; box-sizing:border-box;
-    border-radius:8px; border:2px solid #333; background:#111; color:white;
+    flex:1; padding:10px; border:2px solid #333;
+    background:#111; color:white; border-radius:10px;
 }
-#msg:focus { border-color:#0af; outline:none; }
-
-button { 
-    width:100%; padding:12px; margin-top:10px; cursor:pointer;
-    background:#0af; border:none; border-radius:8px; color:white; font-size:15px;
+#emojiBtn, #fileBtn {
+    width:42px; height:42px;
+    background:#222; border:none; cursor:pointer; font-size:20px;
+    border-radius:10px;
+}
+#sendBtn {
+    padding:10px 15px; background:#0af; color:white; border:none; cursor:pointer;
+    border-radius:10px;
 }
 
-/* Bubbles */
+/* Discord style bubbles (smaller) */
 .chat-bubble {
-    max-width:75%;
-    padding:10px 15px;
-    margin:6px;
-    border-radius:12px;
-    font-size:15px;
+    max-width:60%;
+    padding:6px 10px;
+    margin:4px 0;
+    font-size:14px;
+    border-radius:8px;
     animation:pop .2s;
 }
 .message-you {
-    background:#0f0; color:#000; margin-left:auto;
-    border-bottom-right-radius:3px;
+    background:#55ff55;
+    color:#000;
+    margin-left:auto;
 }
 .message-friend {
-    background:#0af; color:white; margin-right:auto;
-    border-bottom-left-radius:3px;
+    background:#4aa3ff;
+    color:white;
+    margin-right:auto;
 }
 
-/* Animation */
+/* animation */
 @keyframes pop { 
  0%{transform:scale(.8);opacity:.4;} 
  100%{transform:scale(1);opacity:1;} 
@@ -74,26 +84,32 @@ button {
 
 <body>
 
-<!-- LOGIN PAGE -->
 <div id="loginScreen">
     <h2>👤 Enter Your Name</h2>
     <input id="nameInput" placeholder="Your name...">
     <button id="enterBtn">Enter Chat</button>
 </div>
 
-<!-- CHAT PAGE -->
 <div id="chatScreen">
     <h2>🔥 Firebase Chat</h2>
     <div id="messages"></div>
-    <input id="msg" placeholder="Type message...">
-    <button id="sendBtn">Send</button>
+
+    <div class="input-area">
+        <button id="emojiBtn">😊</button>
+        <button id="fileBtn">📎</button>
+        <input id="msg" placeholder="Type message...">
+        <button id="sendBtn">Send</button>
+    </div>
+
+    <!-- Hidden file select -->
+    <input type="file" id="fileInput" style="display:none">
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-// Firebase (same config you gave)
+// Firebase (same)
 const firebaseConfig = {
   apiKey: "AIzaSyCwSqm65CoNwPc3PiVo1T40YJM2MAcg480",
   authDomain: "server-1-9fa4f.firebaseapp.com",
@@ -105,12 +121,16 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// Base logic unchanged
 let db = firebase.database();
 let room = "chat-room-1"; 
+
 let messages = document.getElementById("messages");
 let msgInput = document.getElementById("msg");
 let sendBtn = document.getElementById("sendBtn");
+let fileBtn = document.getElementById("fileBtn");
+let fileInput = document.getElementById("fileInput");
+let emojiBtn = document.getElementById("emojiBtn");
+
 let nameInput = document.getElementById("nameInput");
 let enterBtn = document.getElementById("enterBtn");
 let loginScreen = document.getElementById("loginScreen");
@@ -119,47 +139,52 @@ let chatScreen = document.getElementById("chatScreen");
 let username = "";
 let myId = "";
 
-// Enter chat
+// login
 enterBtn.onclick = () => {
     username = nameInput.value.trim();
-    if(!username) return alert("Enter a name!");
-
-    myId = username + "-" + Math.floor(Math.random()*100000);
-
+    if(!username) return alert("Enter name!");
+    myId = username + "-" + Math.floor(Math.random()*10000);
     loginScreen.style.display = "none";
     chatScreen.style.display = "block";
 };
 
-// Send message
-function sendMessage(){
-    let text = msgInput.value.trim();
-    if(!text) return;
-
+// send message
+function sendMessage(text){
+    if(!text.trim()) return;
     db.ref(room).push({ text, user: myId, name: username, time: Date.now() });
     msgInput.value = "";
 }
-sendBtn.onclick = sendMessage;
+sendBtn.onclick = () => sendMessage(msgInput.value);
+msgInput.addEventListener("keypress", e => { if(e.key==="Enter") sendMessage(msgInput.value); });
+nameInput.addEventListener("keypress", e => { if(e.key==="Enter") enterBtn.click(); });
 
-// Press Enter = send
-msgInput.addEventListener("keypress", e => {
-    if(e.key === "Enter") sendMessage();
-});
-nameInput.addEventListener("keypress", e => {
-    if(e.key === "Enter") enterBtn.click();
-});
+// Emoji picker (basic)
+emojiBtn.onclick = () => {
+    const emojis = ["😀","😂","🔥","😎","❤️","😡","😴","🎮","👀","✅","😭","👍","🤝"];
+    let pick = prompt("Choose emoji:\n" + emojis.join(" "));
+    if(pick) msgInput.value += pick;
+};
 
-// Display messages
-db.ref(room).on("child_added", snap => {
-    let data = snap.val();
-    if(data && data.text){
-        let cls = (data.user === myId) ? 'message-you' : 'message-friend';
-        messages.innerHTML += `
-            <div class="chat-bubble ${cls}">
-                <b>${data.user === myId ? "You" : data.name}:</b><br>${data.text}
-            </div>
-        `;
-        messages.scrollTop = messages.scrollHeight;
+// Attachment
+fileBtn.onclick = ()=> fileInput.click();
+fileInput.onchange = ()=>{
+    let file = fileInput.files[0];
+    if(file){
+        sendMessage("[📎 Attachment] " + file.name);
     }
+};
+
+// receive messages
+db.ref(room).on("child_added", snap => {
+    let d = snap.val();
+    if(!d) return;
+    let bubble = (d.user === myId) ? "message-you" : "message-friend";
+    messages.innerHTML += `
+        <div class="chat-bubble ${bubble}">
+            <b>${d.user===myId?"You":d.name}:</b> ${d.text}
+        </div>
+    `;
+    messages.scrollTop = messages.scrollHeight;
 });
 </script>
 </body>
